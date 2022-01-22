@@ -1,4 +1,6 @@
 QT       += core gui
+QT -= gui
+QT += xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -11,11 +13,13 @@ CONFIG += c++11
 SOURCES += \
     highlighter.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    xmlmodel.cpp
 
 HEADERS += \
     highlighter.h \
-    mainwindow.h
+    mainwindow.h \
+    xmlmodel.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

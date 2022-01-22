@@ -10,6 +10,7 @@
 #include <QSyntaxHighlighter>
 
 #include "highlighter.h"
+#include "xmlmodel.h"
 
 QT_BEGIN_NAMESPACE
 class QTextEdit;
@@ -20,15 +21,20 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow();
     ~MainWindow();
 
 private slots:
-    void contextMenu(QModelIndex index);
+    void contextMenu(QPoint index);
 
 private slots:
-    void open();
-    void close();
+    void slotNew();
+    void slotOpen();
+    void slotSave();
+    void slotSaveAs();
+    void slotSaveAll();
+    void slotClose();
+    void slotCloseAll();
 
 private:
     QTabWidget* tabWidget;
@@ -39,25 +45,21 @@ private:
     void createMenus();
 
 private:
-//    XmlModel* model;
+    XmlModel* model;
     QTreeView* treeView;
 
     QMenu *fileMenu;
-    QAction *openAct;
-    QAction *closeAct;
-    QAction *exitAct;
-    QAction *makeActiveAct;
 
-public slots:
-    void about();
-    void newFile();
-    void openFile(const QString &path = QString());
+    QAction *newAct;
+    QAction *openAct;
+    QAction *saveAct;
+    QAction *saveAsAct;
+    QAction *saveAllAct;
+    QAction *closeAct;
+    QAction *closeAllAct;
+    QAction *exitAct;
 
 private:
-    void setupEditor();
-    void setupFileMenu();
-    void setupHelpMenu();
-
     QTextEdit *editor;
     Highlighter *highlighter;
 };

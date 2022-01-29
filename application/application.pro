@@ -1,8 +1,10 @@
 QT += widgets
 requires(qtConfig(filedialog))
 
-HEADERS       = mainwindow.h
+HEADERS       = mainwindow.h \
+    highlighter.h
 SOURCES       = main.cpp \
+                highlighter.cpp \
                 mainwindow.cpp
 #! [0]
 RESOURCES     = application.qrc

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "highlighter.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -15,10 +16,14 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+    QTabWidget* tabWidget;
+    int numberNewFiles=0;
+
 public:
     MainWindow();
 
     void loadFile(const QString &fileName);
+    void getWindowForTextErrors(const QString);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -28,14 +33,15 @@ private slots:
     void open();
     bool save();
     bool saveAs();
-    bool saveAll();
-    void close();
+    void saveAll();
+    bool close();
     void closeAll();
     void about();
     void documentWasModified();
 #ifndef QT_NO_SESSIONMANAGER
     void commitData(QSessionManager &);
 #endif
+    void slotTabCloseRequested(int);
 
 private:
     void createActions();

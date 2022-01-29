@@ -5,7 +5,13 @@
 MainWindow::MainWindow()
     : textEdit(new QPlainTextEdit)
 {
-    setCentralWidget(textEdit);
+    tabWidget=new QTabWidget(this);
+    tabWidget->setTabsClosable(true);
+    tabWidget->setMinimumHeight(500);
+    tabWidget->setMinimumWidth(1000);
+    tabWidget->setTabShape(QTabWidget::Triangular);
+
+    setCentralWidget(tabWidget);
 
     createActions();
     createStatusBar();
@@ -14,6 +20,10 @@ MainWindow::MainWindow()
 
     connect(textEdit->document(), &QTextDocument::contentsChanged,
             this, &MainWindow::documentWasModified);
+//    connect(tabWidget, &QTextDocument::contentsChanged,
+//            this, &MainWindow::documentWasModified);
+
+    connect(tabWidget,SIGNAL(tabCloseRequested(int)),SLOT(slotTabCloseRequested(int)));
 
 #ifndef QT_NO_SESSIONMANAGER
     connect(qApp, &QGuiApplication::commitDataRequest,
@@ -22,6 +32,7 @@ MainWindow::MainWindow()
 
     setCurrentFile(QString());
     setUnifiedTitleAndToolBarOnMac(true);
+    setWindowTitle(tr("Text editor"));
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -36,19 +47,19 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::newFile()
 {
-    if (maybeSave()) {
-        textEdit->clear();
-        setCurrentFile(QString());
-    }
+    ++numberNewFiles;
+    QTextEdit* newWidget=new QTextEdit();
+    tabWidget->addTab(newWidget,tr("New file ")+QString::number(numberNewFiles));
+//    UpdatingOpenDocuments();
+
+//    connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
 }
 
 void MainWindow::open()
 {
-    if (maybeSave()) {
-        QString fileName = QFileDialog::getOpenFileName(this);
-        if (!fileName.isEmpty())
-            loadFile(fileName);
-    }
+    QString fileName = QFileDialog::getOpenFileName(this);
+    if (!fileName.isEmpty())
+        loadFile(fileName);
 }
 
 bool MainWindow::save()
@@ -71,23 +82,46 @@ bool MainWindow::saveAs()
 }
 
 
-bool MainWindow::saveAll()
-{
-    if (curFile.isEmpty()) {
-        return saveAs();
-    } else {
-        return saveFile(curFile);
+void MainWindow::saveAll()
+{   
+    QWidget* widget=tabWidget->currentWidget();
+    for(int a=0;a<tabWidget->count();++a){
+        tabWidget->setCurrentIndex(a);
+        save();
     }
+    tabWidget->setCurrentWidget(widget);                                             //!!!!!!!!
 }
 
-void MainWindow::close()
+bool MainWindow::close()
 {
-
+    bool close=true;
+    if(tabWidget->currentWidget()->property("PathAndName")==QVariant()){
+        close=maybeSave();
+    }
+    else{
+        QFile file(tabWidget->currentWidget()->property("PathAndName").toString());
+        if(file.open(QIODevice::ReadOnly)){
+            QString text=file.readAll();
+            QTextEdit* page=static_cast<QTextEdit*>(tabWidget->currentWidget());
+            if(page->toPlainText()!=text) close=maybeSave();
+        }
+        else getWindowForTextErrors(tr("File can't be open ")+tabWidget->tabText(tabWidget->currentIndex()));
+    }
+    if(close){
+        tabWidget->currentWidget()->close();
+        tabWidget->removeTab(tabWidget->currentIndex());
+    }
+//    UpdatingOpenDocuments();
+    return close;
 }
 
 void MainWindow::closeAll()
 {
-
+    int count=tabWidget->count();
+    for(int a=0;a<count;++a){
+        tabWidget->setCurrentIndex(0);
+        if(!close()) return;
+    }
 }
 
 void MainWindow::about()
@@ -99,13 +133,10 @@ void MainWindow::about()
 }
 
 void MainWindow::documentWasModified()
-//! [15] //! [16]
 {
     setWindowModified(textEdit->document()->isModified());
 }
-//! [16]
 
-//! [17]
 void MainWindow::createActions()
 {
     // menu file new
@@ -177,7 +208,7 @@ void MainWindow::createActions()
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip(tr("Cut the current selection's contents to the "
                             "clipboard"));
-    connect(cutAct, &QAction::triggered, textEdit, &QPlainTextEdit::cut);
+    connect(cutAct, &QAction::triggered, textEdit, &QPlainTextEdit::cut);         //!!!!!!!!!!!
     editMenu->addAction(cutAct);
     editToolBar->addAction(cutAct);
 
@@ -225,7 +256,7 @@ void MainWindow::createActions()
 #ifndef QT_NO_CLIPBOARD
     cutAct->setEnabled(false);
     copyAct->setEnabled(false);
-    connect(textEdit, &QPlainTextEdit::copyAvailable, cutAct, &QAction::setEnabled);
+    connect(textEdit, &QPlainTextEdit::copyAvailable, cutAct, &QAction::setEnabled);           //!!!!!!!!!
     connect(textEdit, &QPlainTextEdit::copyAvailable, copyAct, &QAction::setEnabled);
 #endif // !QT_NO_CLIPBOARD
 }
@@ -257,8 +288,8 @@ void MainWindow::writeSettings()
 
 bool MainWindow::maybeSave()
 {
-    if (!textEdit->document()->isModified())
-        return true;
+//    if (!textEdit->document()->isModified())
+//        return true;
     const QMessageBox::StandardButton ret
         = QMessageBox::warning(this, tr("Application"),
                                tr("The document has been modified.\n"
@@ -285,16 +316,36 @@ void MainWindow::loadFile(const QString &fileName)
         return;
     }
 
+    bool openingFile=false;
+    for(int i=0;i<tabWidget->count();++i){
+        if(tabWidget->tabText(i)==fileName) openingFile=true;
+    }
+    if(!openingFile){
+        QString textFile=file.readAll();
+        QTextEdit* newWidget=new QTextEdit();
+        newWidget->setProperty("PathAndName",fileName);
+        newWidget->setText(textFile);
+
+        Highlighter* syntax=new Highlighter(newWidget->document());
+
+        QFileInfo fileInfo(fileName);
+        tabWidget->addTab(newWidget,fileInfo.fileName());
+
+//        connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
+        tabWidget->setCurrentWidget(newWidget);
+    }
+    else getWindowForTextErrors("File is already opened");
+//  UpdatingOpenDocuments();
+
     QTextStream in(&file);
 #ifndef QT_NO_CURSOR
     QGuiApplication::setOverrideCursor(Qt::WaitCursor);
 #endif
-    textEdit->setPlainText(in.readAll());
+//    textEdit->setPlainText(in.readAll());
 #ifndef QT_NO_CURSOR
     QGuiApplication::restoreOverrideCursor();
 #endif
 
-    setCurrentFile(fileName);
     statusBar()->showMessage(tr("File loaded"), 2000);
 }
 
@@ -322,15 +373,18 @@ bool MainWindow::saveFile(const QString &fileName)
         return false;
     }
 
-    setCurrentFile(fileName);
+//    tabWidget->setCurrentWidget(newWidget);
+    setCurrentFile(fileName);                                                                //!!!!!!!!
     statusBar()->showMessage(tr("File saved"), 2000);
     return true;
 }
 
-void MainWindow::setCurrentFile(const QString &fileName)
+void MainWindow::setCurrentFile(const QString &fileName)                                      //!!!!!
 {
+//    tabWidget->currentWidget()->property("PathAndName").toString();
     curFile = fileName;
-    textEdit->document()->setModified(false);
+//    textEdit->document()->setModified(false);
+//    tabWidget->document()->setModified(false);
     setWindowModified(false);
 
     QString shownName = curFile;
@@ -356,3 +410,19 @@ void MainWindow::commitData(QSessionManager &manager)
     }
 }
 #endif
+
+void MainWindow::getWindowForTextErrors(const QString textError){
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Critical);
+    msgBox.setText(textError);
+    msgBox.exec();
+}
+
+void MainWindow::slotTabCloseRequested(int index){
+    QWidget* wgt=tabWidget->currentWidget();
+    tabWidget->setCurrentIndex(index);
+    close();
+    tabWidget->setCurrentWidget(wgt);
+}
+
+

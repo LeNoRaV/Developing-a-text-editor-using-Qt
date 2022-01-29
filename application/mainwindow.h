@@ -11,7 +11,6 @@ class QPlainTextEdit;
 class QSessionManager;
 QT_END_NAMESPACE
 
-//! [0]
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -37,11 +36,13 @@ private slots:
     bool close();
     void closeAll();
     void about();
-    void documentWasModified();
+//    void documentWasModified();
 #ifndef QT_NO_SESSIONMANAGER
     void commitData(QSessionManager &);
 #endif
     void slotTabCloseRequested(int);
+    void slotTextChanged();
+//    void slotActiveTab(QModelIndex);
 
 private:
     void createActions();
@@ -56,6 +57,5 @@ private:
     QPlainTextEdit *textEdit;
     QString curFile; 
 };
-//! [0]
 
 #endif

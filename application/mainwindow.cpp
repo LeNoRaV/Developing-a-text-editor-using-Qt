@@ -18,8 +18,8 @@ MainWindow::MainWindow()
 
     readSettings();
 
-    connect(textEdit->document(), &QTextDocument::contentsChanged,
-            this, &MainWindow::documentWasModified);
+//    connect(textEdit->document(), &QTextDocument::contentsChanged,
+//            this, &MainWindow::documentWasModified);
 //    connect(tabWidget, &QTextDocument::contentsChanged,
 //            this, &MainWindow::documentWasModified);
 
@@ -52,7 +52,7 @@ void MainWindow::newFile()
     tabWidget->addTab(newWidget,tr("New file ")+QString::number(numberNewFiles));
 //    UpdatingOpenDocuments();
 
-//    connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
+    connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
 }
 
 void MainWindow::open()
@@ -132,10 +132,10 @@ void MainWindow::about()
                "toolbars, and a status bar."));
 }
 
-void MainWindow::documentWasModified()
-{
-    setWindowModified(textEdit->document()->isModified());
-}
+//void MainWindow::documentWasModified()
+//{
+//    setWindowModified(textEdit->document()->isModified());
+//}
 
 void MainWindow::createActions()
 {
@@ -245,13 +245,14 @@ void MainWindow::createActions()
 
 #endif // !QT_NO_CLIPBOARD
 
-    QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-    QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
-    aboutAct->setStatusTip(tr("Show the application's About box"));
+    QMenu *helpMenu = menuBar()->addMenu(tr("&View"));
+
+    QAction *aboutAct = helpMenu->addAction(tr("Show explorer"), this, &MainWindow::about); //!!1!!!!!
+    aboutAct->setStatusTip(tr("Show the application's explorer"));
 
 
-    QAction *aboutQtAct = helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
-    aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
+    QAction *aboutQtAct = helpMenu->addAction(tr("Show open document browser"), qApp, &QApplication::aboutQt); //!!!!!!
+    aboutQtAct->setStatusTip(tr("Show the application's open document browser"));
 
 #ifndef QT_NO_CLIPBOARD
     cutAct->setEnabled(false);
@@ -288,7 +289,7 @@ void MainWindow::writeSettings()
 
 bool MainWindow::maybeSave()
 {
-//    if (!textEdit->document()->isModified())
+//    if (!tabWidget->currentWidget()->isModified())
 //        return true;
     const QMessageBox::StandardButton ret
         = QMessageBox::warning(this, tr("Application"),
@@ -331,7 +332,7 @@ void MainWindow::loadFile(const QString &fileName)
         QFileInfo fileInfo(fileName);
         tabWidget->addTab(newWidget,fileInfo.fileName());
 
-//        connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
+        connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
         tabWidget->setCurrentWidget(newWidget);
     }
     else getWindowForTextErrors("File is already opened");
@@ -341,7 +342,6 @@ void MainWindow::loadFile(const QString &fileName)
 #ifndef QT_NO_CURSOR
     QGuiApplication::setOverrideCursor(Qt::WaitCursor);
 #endif
-//    textEdit->setPlainText(in.readAll());
 #ifndef QT_NO_CURSOR
     QGuiApplication::restoreOverrideCursor();
 #endif
@@ -352,12 +352,15 @@ void MainWindow::loadFile(const QString &fileName)
 bool MainWindow::saveFile(const QString &fileName)
 {
     QString errorMessage;
+    QTextEdit* page=static_cast<QTextEdit*>(tabWidget->currentWidget());
 
     QGuiApplication::setOverrideCursor(Qt::WaitCursor);
     QSaveFile file(fileName);
     if (file.open(QFile::WriteOnly | QFile::Text)) {
         QTextStream out(&file);
-        out << textEdit->toPlainText();
+        out << page->toPlainText();
+        QFileInfo fileInfo(fileName);
+        tabWidget->setTabText(tabWidget->currentIndex(),fileInfo.fileName());
         if (!file.commit()) {
             errorMessage = tr("Cannot write file %1:\n%2.")
                            .arg(QDir::toNativeSeparators(fileName), file.errorString());
@@ -387,10 +390,10 @@ void MainWindow::setCurrentFile(const QString &fileName)                        
 //    tabWidget->document()->setModified(false);
     setWindowModified(false);
 
-    QString shownName = curFile;
-    if (curFile.isEmpty())
-        shownName = "untitled.txt";
-    setWindowFilePath(shownName);
+//    QString shownName = curFile;
+//    if (curFile.isEmpty())
+//        shownName = "untitled.txt";
+//    setWindowFilePath(shownName);
 }
 
 QString MainWindow::strippedName(const QString &fullFileName)
@@ -424,5 +427,17 @@ void MainWindow::slotTabCloseRequested(int index){
     close();
     tabWidget->setCurrentWidget(wgt);
 }
+
+void MainWindow::slotTextChanged(){
+    if(tabWidget->tabText(tabWidget->currentIndex()).at(0)!='*'){
+        QString str =tabWidget->tabText(tabWidget->currentIndex());
+        tabWidget->setTabText(tabWidget->currentIndex(),"*"+str);
+    }
+//    UpdatingOpenDocuments();
+}
+
+//void MainWindow::slotActiveTab(QModelIndex index){
+//    tabWidget->setCurrentIndex(index.row());
+//}
 
 

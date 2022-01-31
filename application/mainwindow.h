@@ -41,7 +41,6 @@ private slots:
     void saveAll();
     bool close();
     void closeAll();
-//    void documentWasModified();
 #ifndef QT_NO_SESSIONMANAGER
     void commitData(QSessionManager &);
 #endif
@@ -51,10 +50,6 @@ private slots:
     void slotActiveTab(QModelIndex);
     void slotMenuEdit(QAction*);
     void slotMenuView(QAction*);
-
-//    void createDockWidgets();
-//    void loadCurrentFile(QModelIndex index);
-//    void currentTab(QModelIndex index);
 
 private:
     void createFile();

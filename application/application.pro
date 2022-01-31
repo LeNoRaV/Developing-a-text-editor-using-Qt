@@ -18,3 +18,6 @@ RESOURCES     = application.qrc
 # install
 target.path = $$[QT_INSTALL_EXAMPLES]/widgets/mainwindows/application
 INSTALLS += target
+
+DISTFILES += \
+    xml-file.xml

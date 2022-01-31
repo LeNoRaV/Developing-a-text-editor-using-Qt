@@ -1,6 +1,7 @@
 #include <QtWidgets>
 
 #include "mainwindow.h"
+#include "exit.h"
 
 MainWindow::MainWindow()
     : textEdit(new QPlainTextEdit)
@@ -34,11 +35,35 @@ MainWindow::MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (maybeSave()) {
-        writeSettings();
-        event->accept();
-    } else {
-        event->ignore();
+    QStringList listNoSaveFiles;
+    int count=tabWidget->count();
+    for(int i=0;i<count;++i){
+        tabWidget->setCurrentIndex(i);
+        if(tabWidget->currentWidget()->property("PathAndName")==QVariant())
+            listNoSaveFiles.push_back(tabWidget->tabText(tabWidget->currentIndex()));
+        else{
+            QFile file(tabWidget->currentWidget()->property("PathAndName").toString());
+            if(file.open(QIODevice::ReadOnly)){
+                QString text=file.readAll();
+                QTextEdit* page=static_cast<QTextEdit*>(tabWidget->currentWidget());
+                if(page->toPlainText()!=text) listNoSaveFiles.push_back(tabWidget->currentWidget()->property("PathAndName").toString());
+            }
+            else getWindowForTextErrors(tr("Can't open file ")+tabWidget->tabText(tabWidget->currentIndex()));
+        }
+    }
+    if(listNoSaveFiles.count()!=0){
+        ExitWindow* exitWindow=new ExitWindow(&listNoSaveFiles);
+        int resultExitWindow=exitWindow->exec();
+        if(resultExitWindow==1){
+            QWidget* widget=tabWidget->currentWidget();
+            for(int a=0;a<tabWidget->count();++a){
+                tabWidget->setCurrentIndex(a);
+                save();
+            }
+            tabWidget->setCurrentWidget(widget);
+        }
+        if(resultExitWindow==1 || resultExitWindow==2) event->accept();
+        else event->ignore();
     }
 }
 
@@ -271,6 +296,7 @@ void MainWindow::writeSettings()
 
 bool MainWindow::maybeSave()
 {
+
     const QMessageBox::StandardButton ret
         = QMessageBox::warning(this, tr("Application"),
                                tr("The document has been modified.\n"

@@ -24,7 +24,7 @@ class Highlighter : public QSyntaxHighlighter
 public:
     Highlighter(const QString &suffix,
                 QTextDocument *parent=0,
-                const QString &style_filename=":/settings.xml");
+                const QString &style_filename=":/MyFiles/xml-file.xml");
     bool isSupported();
 
 protected:

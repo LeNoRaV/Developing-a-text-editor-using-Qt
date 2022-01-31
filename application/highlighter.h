@@ -4,40 +4,39 @@
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 #include <QRegularExpression>
+#include <QDomDocument>
+#include <QFile>
+#include <QFileInfo>
 
 QT_BEGIN_NAMESPACE
 class QTextDocument;
 QT_END_NAMESPACE
 
-//! [0]
+struct HighlightingRule
+{
+    QRegularExpression pattern;
+    QTextCharFormat format;
+};
+
 class Highlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
-
 public:
-    Highlighter(QTextDocument *parent = 0);
+    Highlighter(const QString &suffix,
+                QTextDocument *parent=0,
+                const QString &style_filename=":/settings.xml");
+    bool isSupported();
 
 protected:
     void highlightBlock(const QString &text) override;
 
 private:
-    struct HighlightingRule
-    {
-        QRegularExpression pattern;
-        QTextCharFormat format;
-    };
     QVector<HighlightingRule> highlightingRules;
+    bool supported;
 
+    QTextCharFormat multiLineCommentFormat;
     QRegularExpression commentStartExpression;
     QRegularExpression commentEndExpression;
-
-    QTextCharFormat keywordFormat;
-    QTextCharFormat classFormat;
-    QTextCharFormat singleLineCommentFormat;
-    QTextCharFormat multiLineCommentFormat;
-    QTextCharFormat quotationFormat;
-    QTextCharFormat functionFormat;
 };
-//! [0]
 
 #endif // HIGHLIGHTER_H

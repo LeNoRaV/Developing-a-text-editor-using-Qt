@@ -1,56 +1,67 @@
 #include "highlighter.h"
 
-Highlighter::Highlighter(QTextDocument *parent)
+Highlighter::Highlighter(const QString &suffix, QTextDocument *parent, const QString &style_filename)
     : QSyntaxHighlighter(parent)
 {
+    supported = true;
+    multiLineCommentFormat.setForeground(QColor(255, 198, 136));
+
     HighlightingRule rule;
+    QTextCharFormat textCharFormat;
+    QDomDocument domDocument;
+    QFile file(style_filename);
 
-    keywordFormat.setForeground(Qt::red);
-    keywordFormat.setFontWeight(QFont::Bold);
-    const QString keywordPatterns[] = {
-        QStringLiteral("\\bchar\\b"), QStringLiteral("\\bclass\\b"), QStringLiteral("\\bconst\\b"),
-        QStringLiteral("\\bdouble\\b"), QStringLiteral("\\benum\\b"), QStringLiteral("\\bexplicit\\b"),
-        QStringLiteral("\\bfriend\\b"), QStringLiteral("\\binline\\b"), QStringLiteral("\\bint\\b"),
-        QStringLiteral("\\blong\\b"), QStringLiteral("\\bnamespace\\b"), QStringLiteral("\\boperator\\b"),
-        QStringLiteral("\\bprivate\\b"), QStringLiteral("\\bprotected\\b"), QStringLiteral("\\bpublic\\b"),
-        QStringLiteral("\\bshort\\b"), QStringLiteral("\\bsignals\\b"), QStringLiteral("\\bsigned\\b"),
-        QStringLiteral("\\bslots\\b"), QStringLiteral("\\bstatic\\b"), QStringLiteral("\\bstruct\\b"),
-        QStringLiteral("\\btemplate\\b"), QStringLiteral("\\btypedef\\b"), QStringLiteral("\\btypename\\b"),
-        QStringLiteral("\\bunion\\b"), QStringLiteral("\\bunsigned\\b"), QStringLiteral("\\bvirtual\\b"),
-        QStringLiteral("\\bvoid\\b"), QStringLiteral("\\bvolatile\\b"), QStringLiteral("\\bbool\\b")
-    };
-    for (const QString &pattern : keywordPatterns) {
-        rule.pattern = QRegularExpression(pattern);
-        rule.format = keywordFormat;
-        highlightingRules.append(rule);
+    QString errorStr;
+    int errorLine;
+    int errorColumn;
+
+    if (file.open(QIODevice::ReadOnly)){
+        if (domDocument.setContent(&file, &errorStr, &errorLine, &errorColumn)){
+            QDomElement root = domDocument.documentElement();
+            auto syntaxNodes = root.elementsByTagName("syntax");
+
+            if (!syntaxNodes.isEmpty())
+                for(auto i = 0; i < syntaxNodes.count(); ++i) {
+                    QStringList ext_list = syntaxNodes.item(i).toElement().attribute("ext_list").split(QRegularExpression("\\s+"));
+                    if ((ext_list.contains(suffix)) && (suffix != Q_NULLPTR)){
+                        auto ruleNodes = syntaxNodes.item(i).toElement().elementsByTagName("rule");
+
+                        if (!ruleNodes.isEmpty())
+                            for(int j = 0; j < ruleNodes.count(); ++j){
+                                auto pattern = ruleNodes.item(j).toElement().elementsByTagName("pattern");
+                                auto format = ruleNodes.item(j).toElement().elementsByTagName("format");
+
+                                rule.pattern = QRegularExpression(pattern.item(0).toElement().attribute("value"));
+                                rule.format.setForeground(QColor(format.item(0).toElement().attribute("foreground")));
+                                rule.format.setFontWeight(format.at(0).toElement().attribute("font_weight").toInt());
+
+                                highlightingRules.append(rule);
+                            }
+                        auto startElem = root.elementsByTagName("startComment").item(0).toElement();
+                        auto endElem = root.elementsByTagName("startComment").item(0).toElement();
+
+                        QString startCommentNode = startElem.elementsByTagName("pattern").at(0).toElement().attribute("value");
+                        QString endCommentNode = endElem.elementsByTagName("pattern").at(0).toElement().attribute("value");
+
+                        commentStartExpression = QRegularExpression(startCommentNode);
+                        commentEndExpression = QRegularExpression(endCommentNode);
+                    }
+                    else
+                        supported = false;
+                }
+        }
+        else qDebug() << errorStr
+                      << "Wrong line: "
+                      << errorLine
+                      << "Wrong column: "
+                      << errorColumn;
     }
+    else qDebug() << "Can't open Xml-file";
+}
 
-    classFormat.setFontWeight(QFont::Bold);
-    classFormat.setForeground(Qt::darkRed);
-    rule.pattern = QRegularExpression(QStringLiteral("\\bQ[A-Za-z]+\\b"));
-    rule.format = classFormat;
-    highlightingRules.append(rule);
-
-    singleLineCommentFormat.setForeground(Qt::gray);
-    rule.pattern = QRegularExpression(QStringLiteral("//[^\n]*"));
-    rule.format = singleLineCommentFormat;
-    highlightingRules.append(rule);
-
-    multiLineCommentFormat.setForeground(Qt::gray);
-
-    quotationFormat.setForeground(Qt::darkYellow);
-    rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
-    rule.format = quotationFormat;
-    highlightingRules.append(rule);
-
-    functionFormat.setFontItalic(true);
-    functionFormat.setForeground(Qt::darkGreen);
-    rule.pattern = QRegularExpression(QStringLiteral("\\b[A-Za-z0-9_]+(?=\\()"));
-    rule.format = functionFormat;
-    highlightingRules.append(rule);
-
-    commentStartExpression = QRegularExpression(QStringLiteral("/\\*"));
-    commentEndExpression = QRegularExpression(QStringLiteral("\\*/"));
+bool Highlighter::isSupported()
+{
+    return supported;
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -73,13 +84,14 @@ void Highlighter::highlightBlock(const QString &text)
         QRegularExpressionMatch match = commentEndExpression.match(text, startIndex);
         int endIndex = match.capturedStart();
         int commentLength = 0;
+
         if (endIndex == -1) {
             setCurrentBlockState(1);
             commentLength = text.length() - startIndex;
         } else {
-            commentLength = endIndex - startIndex
-                            + match.capturedLength();
+            commentLength = endIndex - startIndex+ match.capturedLength();
         }
+
         setFormat(startIndex, commentLength, multiLineCommentFormat);
         startIndex = text.indexOf(commentStartExpression, startIndex + commentLength);
     }

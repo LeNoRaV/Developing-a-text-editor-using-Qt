@@ -13,15 +13,12 @@ MainWindow::MainWindow()
 
     setCentralWidget(tabWidget);
 
-    createActions();
+    createFile();
+    createEdit();
+    createView();
     createStatusBar();
 
     readSettings();
-
-//    connect(textEdit->document(), &QTextDocument::contentsChanged,
-//            this, &MainWindow::documentWasModified);
-//    connect(tabWidget, &QTextDocument::contentsChanged,
-//            this, &MainWindow::documentWasModified);
 
     connect(tabWidget,SIGNAL(tabCloseRequested(int)),SLOT(slotTabCloseRequested(int)));
 
@@ -30,7 +27,7 @@ MainWindow::MainWindow()
             this, &MainWindow::commitData);
 #endif
 
-    setCurrentFile(QString());
+//    setCurrentFile(QString());
     setUnifiedTitleAndToolBarOnMac(true);
     setWindowTitle(tr("Text editor"));
 }
@@ -50,7 +47,7 @@ void MainWindow::newFile()
     ++numberNewFiles;
     QTextEdit* newWidget=new QTextEdit();
     tabWidget->addTab(newWidget,tr("New file ")+QString::number(numberNewFiles));
-//    UpdatingOpenDocuments();
+    UpdatingOpenDocuments();
 
     connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
 }
@@ -89,7 +86,7 @@ void MainWindow::saveAll()
         tabWidget->setCurrentIndex(a);
         save();
     }
-    tabWidget->setCurrentWidget(widget);                                             //!!!!!!!!
+    tabWidget->setCurrentWidget(widget);
 }
 
 bool MainWindow::close()
@@ -111,7 +108,7 @@ bool MainWindow::close()
         tabWidget->currentWidget()->close();
         tabWidget->removeTab(tabWidget->currentIndex());
     }
-//    UpdatingOpenDocuments();
+    UpdatingOpenDocuments();
     return close;
 }
 
@@ -124,22 +121,8 @@ void MainWindow::closeAll()
     }
 }
 
-void MainWindow::about()
+void MainWindow::createFile()
 {
-   QMessageBox::about(this, tr("About Application"),
-            tr("The <b>Application</b> example demonstrates how to "
-               "write modern GUI applications using Qt, with a menu bar, "
-               "toolbars, and a status bar."));
-}
-
-//void MainWindow::documentWasModified()
-//{
-//    setWindowModified(textEdit->document()->isModified());
-//}
-
-void MainWindow::createActions()
-{
-    // menu file new
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     QToolBar *fileToolBar = addToolBar(tr("File"));
 
@@ -151,7 +134,6 @@ void MainWindow::createActions()
     fileMenu->addAction(newAct);
     fileToolBar->addAction(newAct);
 
-    // menu file open
     const QIcon openIcon = QIcon::fromTheme("document-open", QIcon(":/images/open.png"));
     QAction *openAct = new QAction(openIcon, tr("&Open..."), this);
     openAct->setShortcuts(QKeySequence::Open);
@@ -160,7 +142,6 @@ void MainWindow::createActions()
     fileMenu->addAction(openAct);
     fileToolBar->addAction(openAct);
 
-    // menu file save
     const QIcon saveIcon = QIcon::fromTheme("document-save", QIcon(":/images/save.png"));
     QAction *saveAct = new QAction(saveIcon, tr("&Save"), this);
     saveAct->setShortcuts(QKeySequence::Save);
@@ -169,7 +150,6 @@ void MainWindow::createActions()
     fileMenu->addAction(saveAct);
     fileToolBar->addAction(saveAct);
 
-    // menu file save as
     const QIcon saveAsIcon = QIcon::fromTheme("document-save-as");
     QAction *saveAsAct = fileMenu->addAction(saveAsIcon, tr("Save &As..."), this, &MainWindow::saveAs);
     saveAsAct->setShortcuts(QKeySequence::SaveAs);
@@ -192,23 +172,22 @@ void MainWindow::createActions()
 
     fileMenu->addSeparator();
 
-    // menu file exit
     const QIcon exitIcon = QIcon::fromTheme("application-exit");
     QAction *exitAct = fileMenu->addAction(exitIcon, tr("E&xit"), this, &QWidget::close);
     exitAct->setShortcuts(QKeySequence::Quit);
     exitAct->setStatusTip(tr("Exit the application"));
+}
 
-
+void MainWindow::createEdit()
+{
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
     QToolBar *editToolBar = addToolBar(tr("Edit"));
 
-#ifndef QT_NO_CLIPBOARD
     const QIcon cutIcon = QIcon::fromTheme("edit-cut", QIcon(":/images/cut.png"));
     QAction *cutAct = new QAction(cutIcon, tr("Cu&t"), this);
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip(tr("Cut the current selection's contents to the "
                             "clipboard"));
-    connect(cutAct, &QAction::triggered, textEdit, &QPlainTextEdit::cut);         //!!!!!!!!!!!
     editMenu->addAction(cutAct);
     editToolBar->addAction(cutAct);
 
@@ -217,7 +196,6 @@ void MainWindow::createActions()
     copyAct->setShortcuts(QKeySequence::Copy);
     copyAct->setStatusTip(tr("Copy the current selection's contents to the "
                              "clipboard"));
-    connect(copyAct, &QAction::triggered, textEdit, &QPlainTextEdit::copy);
     editMenu->addAction(copyAct);
     editToolBar->addAction(copyAct);
 
@@ -226,40 +204,44 @@ void MainWindow::createActions()
     pasteAct->setShortcuts(QKeySequence::Paste);
     pasteAct->setStatusTip(tr("Paste the clipboard's contents into the current "
                               "selection"));
-    connect(pasteAct, &QAction::triggered, textEdit, &QPlainTextEdit::paste);
     editMenu->addAction(pasteAct);
     editToolBar->addAction(pasteAct);
 
     QAction *deleteAct = new QAction(tr("&Delete"), this);
     deleteAct->setShortcuts(QKeySequence::Delete);
     deleteAct->setStatusTip(tr("Delete the clipboard's content"));
-    connect(deleteAct, &QAction::triggered, textEdit, &QPlainTextEdit::clear);
     editMenu->addAction(deleteAct);
 
     QAction *selectAllAct = new QAction(tr("&Select All"), this);
     selectAllAct->setStatusTip(tr("Select all clipboard's content"));
-    connect(selectAllAct, &QAction::triggered, textEdit, &QPlainTextEdit::selectAll);
     editMenu->addAction(selectAllAct);
 
+    connect(editMenu,SIGNAL(triggered(QAction*)),this,SLOT(slotMenuEdit(QAction*)));
+
     menuBar()->addSeparator();
+}
 
-#endif // !QT_NO_CLIPBOARD
-
-    QMenu *helpMenu = menuBar()->addMenu(tr("&View"));
-
-    QAction *aboutAct = helpMenu->addAction(tr("Show explorer"), this, &MainWindow::about); //!!1!!!!!
-    aboutAct->setStatusTip(tr("Show the application's explorer"));
-
-
-    QAction *aboutQtAct = helpMenu->addAction(tr("Show open document browser"), qApp, &QApplication::aboutQt); //!!!!!!
-    aboutQtAct->setStatusTip(tr("Show the application's open document browser"));
-
-#ifndef QT_NO_CLIPBOARD
-    cutAct->setEnabled(false);
-    copyAct->setEnabled(false);
-    connect(textEdit, &QPlainTextEdit::copyAvailable, cutAct, &QAction::setEnabled);           //!!!!!!!!!
-    connect(textEdit, &QPlainTextEdit::copyAvailable, copyAct, &QAction::setEnabled);
-#endif // !QT_NO_CLIPBOARD
+void MainWindow::slotMenuEdit(QAction* action){
+    if(action->text()==tr("Cu&t")){
+        QTextEdit* text=(QTextEdit*)(tabWidget->currentWidget());
+        text->cut();
+    }
+    if(action->text()==tr("&Copy")){
+        QTextEdit* text=(QTextEdit*)(tabWidget->currentWidget());
+        text->copy();
+    }
+    if(action->text()==tr("&Paste")){
+        QTextEdit* text=(QTextEdit*)(tabWidget->currentWidget());
+        text->paste();
+    }
+    if(action->text()==tr("&Delete")){
+        QTextEdit* text=(QTextEdit*)(tabWidget->currentWidget());
+        text->clear();
+    }
+    if(action->text()==tr("&Select All")){
+        QTextEdit* text=(QTextEdit*)(tabWidget->currentWidget());
+        text->selectAll();
+    }
 }
 
 void MainWindow::createStatusBar()
@@ -289,8 +271,6 @@ void MainWindow::writeSettings()
 
 bool MainWindow::maybeSave()
 {
-//    if (!tabWidget->currentWidget()->isModified())
-//        return true;
     const QMessageBox::StandardButton ret
         = QMessageBox::warning(this, tr("Application"),
                                tr("The document has been modified.\n"
@@ -327,7 +307,7 @@ void MainWindow::loadFile(const QString &fileName)
         newWidget->setProperty("PathAndName",fileName);
         newWidget->setText(textFile);
 
-        Highlighter* syntax=new Highlighter(newWidget->document());
+        Highlighter* syntax=new Highlighter(fileName,newWidget->document());
 
         QFileInfo fileInfo(fileName);
         tabWidget->addTab(newWidget,fileInfo.fileName());
@@ -336,7 +316,7 @@ void MainWindow::loadFile(const QString &fileName)
         tabWidget->setCurrentWidget(newWidget);
     }
     else getWindowForTextErrors("File is already opened");
-//  UpdatingOpenDocuments();
+    UpdatingOpenDocuments();
 
     QTextStream in(&file);
 #ifndef QT_NO_CURSOR
@@ -376,24 +356,9 @@ bool MainWindow::saveFile(const QString &fileName)
         return false;
     }
 
-//    tabWidget->setCurrentWidget(newWidget);
-    setCurrentFile(fileName);                                                                //!!!!!!!!
+//    setCurrentFile(fileName);
     statusBar()->showMessage(tr("File saved"), 2000);
     return true;
-}
-
-void MainWindow::setCurrentFile(const QString &fileName)                                      //!!!!!
-{
-//    tabWidget->currentWidget()->property("PathAndName").toString();
-    curFile = fileName;
-//    textEdit->document()->setModified(false);
-//    tabWidget->document()->setModified(false);
-    setWindowModified(false);
-
-//    QString shownName = curFile;
-//    if (curFile.isEmpty())
-//        shownName = "untitled.txt";
-//    setWindowFilePath(shownName);
 }
 
 QString MainWindow::strippedName(const QString &fullFileName)
@@ -433,11 +398,108 @@ void MainWindow::slotTextChanged(){
         QString str =tabWidget->tabText(tabWidget->currentIndex());
         tabWidget->setTabText(tabWidget->currentIndex(),"*"+str);
     }
-//    UpdatingOpenDocuments();
+    UpdatingOpenDocuments();
 }
 
-//void MainWindow::slotActiveTab(QModelIndex index){
-//    tabWidget->setCurrentIndex(index.row());
-//}
+void MainWindow::UpdatingOpenDocuments(){
+    if(stringListModel!=Q_NULLPTR){
+        delete stringListModel;
+        stringListModel=new QStringListModel(this);
+        QStringList list;
+        for(int i=0;i<tabWidget->count();++i){
+            list.push_back(tabWidget->tabText(i));
+        }
+        stringListModel->setStringList(list);
+        listView->setModel(stringListModel);
+        listView->reset();
+    }
+}
 
+void MainWindow::createView()
+{
 
+    QMenu* menuView=new QMenu(tr("&View"),this);
+    menuView->addAction(tr("Show explorer"));
+    menuView->addAction(tr("Show open document browser"));
+    menuBar()->addMenu(menuView);
+
+    connect(menuView,SIGNAL(triggered(QAction*)),this,SLOT(slotMenuView(QAction*)));
+}
+
+void MainWindow::slotMenuView(QAction* action){
+    if(action->text()==tr("Show explorer")){
+        fileSystemModel = new QFileSystemModel(this);
+        fileSystemModel->setRootPath(QDir::currentPath());
+        QDockWidget* dockWidget=new QDockWidget(tr("Explorer"),this);
+        dockWidget->setAllowedAreas(Qt::LeftDockWidgetArea);
+        addDockWidget(Qt::LeftDockWidgetArea,dockWidget);
+        QTreeView *treeView = new QTreeView(this);
+        treeView->setModel(fileSystemModel);
+        treeView->setMinimumWidth(150);
+        dockWidget->setWidget(treeView);
+
+        connect(treeView, SIGNAL(clicked(QModelIndex)), this, SLOT(slotOpenFile(QModelIndex)));
+    }
+    if(action->text()==tr("Show open document browser")){
+        stringListModel=new QStringListModel(this);
+        QStringList list;
+        for(int i=0;i<tabWidget->count();++i){
+            list.push_back(tabWidget->tabText(i));
+        }
+        stringListModel->setStringList(list);
+        listView=new QListView(this);
+        listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        listView->setModel(stringListModel);
+        listView->setMinimumWidth(100);
+        QDockWidget* dockWidget=new QDockWidget(tr("Open documents"),this);
+        dockWidget->setAllowedAreas(Qt::RightDockWidgetArea);
+        addDockWidget(Qt::RightDockWidgetArea,dockWidget);
+        dockWidget->setWidget(listView);
+
+        connect(listView,SIGNAL(clicked(QModelIndex)),this,SLOT(slotActiveTab(QModelIndex)));
+    }
+}
+
+void MainWindow::slotActiveTab(QModelIndex index){
+    tabWidget->setCurrentIndex(index.row());
+}
+
+void MainWindow::slotOpenFile(QModelIndex index)
+{
+    QFile file(fileSystemModel->filePath(index));
+    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+        QMessageBox::warning(this, tr("Application"),
+                             tr("Cannot read file %1:\n%2.")
+                             .arg(QDir::toNativeSeparators(fileSystemModel->filePath(index)), file.errorString()));
+        return;
+    }
+
+    bool openingFile=false;
+    for(int i=0;i<tabWidget->count();++i){
+        if(tabWidget->tabText(i)==fileSystemModel->filePath(index)) openingFile=true;
+    }
+    if(!openingFile){
+        QString textFile=file.readAll();
+        QTextEdit* newWidget=new QTextEdit();
+        newWidget->setProperty("PathAndName",fileSystemModel->filePath(index));
+        newWidget->setText(textFile);
+
+        QString str=fileSystemModel->fileName(index);
+        Highlighter* syntax=new Highlighter(str,newWidget->document());
+
+        QFileInfo fileInfo(fileSystemModel->filePath(index));
+        tabWidget->addTab(newWidget,fileInfo.fileName());
+
+        connect(newWidget,SIGNAL(textChanged()),this,SLOT(slotTextChanged()));
+        tabWidget->setCurrentWidget(newWidget);
+    }
+    else getWindowForTextErrors("File is already opened");
+
+    QTextStream in(&file);
+#ifndef QT_NO_CURSOR
+    QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+#endif
+#ifndef QT_NO_CURSOR
+    QGuiApplication::restoreOverrideCursor();
+#endif
+}

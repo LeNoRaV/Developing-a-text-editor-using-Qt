@@ -1,9 +1,14 @@
 QT += widgets
+QT += core gui
+QT -= gui
+QT += xml
 requires(qtConfig(filedialog))
 
 HEADERS       = mainwindow.h \
+    exit.h \
     highlighter.h
 SOURCES       = main.cpp \
+                exit.cpp \
                 highlighter.cpp \
                 mainwindow.cpp
 #! [0]

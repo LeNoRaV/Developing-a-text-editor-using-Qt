@@ -26,7 +26,6 @@ MySyntaxHighlighter::MySyntaxHighlighter(const QString& nameFile,QTextDocument *
                                 highlightingRules.append(rule);
                             }
                         }
-
                         auto commentElement=syntaxElements.item(i).toElement().elementsByTagName("comment");
                         auto ruleElements2=commentElement.item(0).toElement().elementsByTagName("rule");
                         if(!ruleElements2.isEmpty()){

@@ -333,7 +333,8 @@ void MainWindow::loadFile(const QString &fileName)
         newWidget->setProperty("PathAndName",fileName);
         newWidget->setText(textFile);
 
-        Highlighter* syntax=new Highlighter(fileName,newWidget->document());
+        MySyntaxHighlighter* syntax=new MySyntaxHighlighter(fileName,newWidget->document());
+        if(syntax->TextError!=Q_NULLPTR) getWindowForTextErrors(syntax->TextError);
 
         QFileInfo fileInfo(fileName);
         tabWidget->addTab(newWidget,fileInfo.fileName());
@@ -511,7 +512,8 @@ void MainWindow::slotOpenFile(QModelIndex index)
         newWidget->setText(textFile);
 
         QString str=fileSystemModel->fileName(index);
-        Highlighter* syntax=new Highlighter(str,newWidget->document());
+        MySyntaxHighlighter* syntax=new MySyntaxHighlighter(str,newWidget->document());
+        if(syntax->TextError!=Q_NULLPTR) getWindowForTextErrors(syntax->TextError);
 
         QFileInfo fileInfo(fileSystemModel->filePath(index));
         tabWidget->addTab(newWidget,fileInfo.fileName());

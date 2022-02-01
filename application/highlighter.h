@@ -1,42 +1,34 @@
-#ifndef HIGHLIGHTER_H
-#define HIGHLIGHTER_H
+#ifndef MYSYNTAXHIGHLIGHTER_H
+#define MYSYNTAXHIGHLIGHTER_H
 
-#include <QSyntaxHighlighter>
-#include <QTextCharFormat>
-#include <QRegularExpression>
-#include <QDomDocument>
-#include <QFile>
-#include <QFileInfo>
+#include "mainwindow.h"
 
-QT_BEGIN_NAMESPACE
-class QTextDocument;
-QT_END_NAMESPACE
-
-struct HighlightingRule
-{
-    QRegularExpression pattern;
-    QTextCharFormat format;
-};
-
-class Highlighter : public QSyntaxHighlighter
+class MySyntaxHighlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
+
 public:
-    Highlighter(const QString &suffix,
-                QTextDocument *parent=0,
-                const QString &style_filename=":/MyFiles/xml-file.xml");
-    bool isSupported();
+    MySyntaxHighlighter(const QString& nameFile,
+                        QTextDocument *parent = 0,
+                        const QString nameFileSyntax=":/xml-file.xml");
+
+    QString TextError=Q_NULLPTR;
 
 protected:
     void highlightBlock(const QString &text) override;
 
 private:
+    struct HighlightingRule
+    {
+        QRegularExpression pattern;
+        QTextCharFormat format;
+    };
     QVector<HighlightingRule> highlightingRules;
-    bool supported;
 
-    QTextCharFormat multiLineCommentFormat;
-    QRegularExpression commentStartExpression;
-    QRegularExpression commentEndExpression;
+    QTextCharFormat multiLineCommentFormat=QTextCharFormat();
+    QRegularExpression commentStartExpression=QRegularExpression();
+    QRegularExpression commentEndExpression=QRegularExpression();
 };
 
-#endif // HIGHLIGHTER_H
+
+#endif // MYSYNTAXHIGHLIGHTER_H

@@ -45,9 +45,6 @@ MySyntaxHighlighter::MySyntaxHighlighter(const QString& nameFile,QTextDocument *
         else TextError=tr("Не получилось обработать файл с расцветками синтаксиса");
     }
     else TextError=tr("Не открылся файл с расцветками синтаксиса");
-
-    //!!! Комментарии должны быть в файле настроек. Кто сказал, что в данном языке будут // или /**/?
-    //!!! В Python другие комментарии...
 }
 
 void MySyntaxHighlighter::highlightBlock(const QString &text)
